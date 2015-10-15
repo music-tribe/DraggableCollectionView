@@ -325,7 +325,24 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     if(sender.state == UIGestureRecognizerStateChanged) {
         // Move mock to match finger
         fingerTranslation = [sender translationInView:self.collectionView];
-        mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
+        // Only translate in the x axis
+        switch (_draggableAxis) {
+            case DraggableAxisBoth:
+                mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
+                break;
+                
+            case DraggableXAxisX:
+                mockCell.center = CGPointMake(mockCenter.x + fingerTranslation.x, mockCenter.y);
+                break;
+                
+            case DraggableAxisY:
+                mockCell.center = CGPointMake(mockCenter.x , mockCenter.y + fingerTranslation.y);
+                break;
+                
+            default:
+                [NSException raise:NSInternalInconsistencyException format:@"unrecognised DraggableAxis enum"];
+                break;
+        }
         
         // Scroll when necessary
         if (canScroll) {

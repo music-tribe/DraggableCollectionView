@@ -6,6 +6,13 @@
 
 #import <UIKit/UIKit.h>
 
+enum {
+    DraggableAxisBoth,
+    DraggableXAxisX,
+    DraggableAxisY
+};
+typedef NSInteger DraggableAxis;
+
 @interface LSCollectionViewHelper : NSObject <UIGestureRecognizerDelegate>
 
 - (id)initWithCollectionView:(UICollectionView *)collectionView;
@@ -16,4 +23,5 @@
 @property (nonatomic, assign) UIEdgeInsets scrollingEdgeInsets;
 @property (nonatomic, assign) CGFloat scrollingSpeed;
 @property (nonatomic, assign) BOOL enabled;
+@property DraggableAxis draggableAxis;
 @end
