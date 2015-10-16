@@ -5,13 +5,7 @@
 //
 
 #import <UIKit/UIKit.h>
-
-enum {
-    DraggableAxisBoth,
-    DraggableXAxisX,
-    DraggableAxisY
-};
-typedef NSInteger DraggableAxis;
+#import "UICollectionView+Draggable.h"
 
 @interface LSCollectionViewHelper : NSObject <UIGestureRecognizerDelegate>
 

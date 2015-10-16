@@ -20,6 +20,7 @@
     if(_layoutHelper == nil) {
         _layoutHelper = [[LSCollectionViewLayoutHelper alloc] initWithCollectionViewLayout:self];
     }
+    
     return _layoutHelper;
 }
 

@@ -331,7 +331,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
                 mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
                 break;
                 
-            case DraggableXAxisX:
+            case DraggableAxisX:
                 mockCell.center = CGPointMake(mockCenter.x + fingerTranslation.x, mockCenter.y);
                 break;
                 

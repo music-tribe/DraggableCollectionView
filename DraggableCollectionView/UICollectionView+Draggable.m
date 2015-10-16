@@ -30,6 +30,11 @@
     [self getHelper].enabled = draggable;
 }
 
+- (void)setDraggableAxis:(DraggableAxis)draggableAxis
+{
+    [self getHelper].draggableAxis = draggableAxis;
+}
+
 - (UIEdgeInsets)scrollingEdgeInsets
 {
     return [self getHelper].scrollingEdgeInsets;
