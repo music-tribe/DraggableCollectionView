@@ -158,7 +158,9 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     
     if ([gestureRecognizer isEqual:_panPressGestureRecognizer]) {
         for (UILongPressGestureRecognizer *longPress in _longPressGestures) {
-            return [otherGestureRecognizer isEqual:longPress];
+            if ([otherGestureRecognizer isEqual:longPress]) {
+                return YES;
+            }
         }
     }
     
@@ -235,6 +237,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     
     switch (sender.state) {
         case UIGestureRecognizerStateBegan: {
+            DDLogVerbose(@"Long Press UIGestureRecognizerStateBegan \n");
             if (indexPath == nil) {
                 return;
             }
@@ -252,7 +255,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             mockCenter = mockCell.center;
             [self.collectionView addSubview:mockCell];
             [UIView
-             animateWithDuration:0.3
+             animateWithDuration:0.05
              animations:^{
                  mockCell.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
              }
@@ -293,7 +296,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             // Switch mock for cell
             UICollectionViewLayoutAttributes *layoutAttributes = [self.collectionView layoutAttributesForItemAtIndexPath:self.layoutHelper.hideIndexPath];
             [UIView
-             animateWithDuration:0.3
+             animateWithDuration:0.05
              animations:^{
                  mockCell.center = layoutAttributes.center;
                  mockCell.transform = CGAffineTransformMakeScale(1.f, 1.f);
@@ -336,6 +339,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
 - (void)handlePanGesture:(UIPanGestureRecognizer *)sender
 {
     if(sender.state == UIGestureRecognizerStateChanged) {
+         DDLogVerbose(@"PAN UIGestureRecognizerStateChanged \n");
         // Move mock to match finger
         fingerTranslation = [sender translationInView:self.collectionView];
         // Only translate in the x axis
@@ -404,8 +408,6 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     
     NSMutableArray<UILongPressGestureRecognizer *> *newLongPressGestures = [[NSMutableArray alloc] initWithArray:_longPressGestures];
     [newLongPressGestures addObject:longPressGesture];
-
-    [longPressGesture requireGestureRecognizerToFail:_panPressGestureRecognizer];
     
     _longPressGestures = newLongPressGestures.copy;
 }
