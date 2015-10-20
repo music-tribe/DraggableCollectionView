@@ -94,4 +94,14 @@
     return elements;
 }
 
+// FIXME: testing code remove
+- (void)setFromIndexPath:(NSIndexPath *)fromIndexPath
+{
+    if(fromIndexPath == nil) {
+        NSLog(@"Who set this");
+    }
+    
+    _fromIndexPath = fromIndexPath;
+}
+
 @end

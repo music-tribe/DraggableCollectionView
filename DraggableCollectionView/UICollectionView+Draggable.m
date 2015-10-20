@@ -55,4 +55,9 @@
     [self getHelper].scrollingSpeed = scrollingSpeed;
 }
 
+- (void)addLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture;
+{
+    [[self getHelper] addLongPressGesture:longPressGesture];
+}
+
 @end

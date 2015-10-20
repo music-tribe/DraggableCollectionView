@@ -18,4 +18,5 @@
 @property (nonatomic, assign) CGFloat scrollingSpeed;
 @property (nonatomic, assign) BOOL enabled;
 @property DraggableAxis draggableAxis;
+- (void)addLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture;
 @end
