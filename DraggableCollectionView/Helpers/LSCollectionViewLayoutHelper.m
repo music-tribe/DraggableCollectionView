@@ -29,6 +29,24 @@
     NSIndexPath *hideIndexPath = self.hideIndexPath;
     NSIndexPath *indexPathToRemove;
     
+    const CGFloat heightInsetAmount = 4;
+    
+    // Default layout
+    for(int i = 0; i < [elements count]; ++i) {
+        UICollectionViewLayoutAttributes *currentLayoutAttributes = elements[i];
+        
+        NSInteger maximumSpacing = 10;
+
+        CGRect frame = currentLayoutAttributes.frame;
+        frame.size.height = _collectionViewLayout.collectionViewContentSize.height - (heightInsetAmount * 2);
+        frame.origin.y = heightInsetAmount;
+        if (i != 0) {
+            UICollectionViewLayoutAttributes *prevLayoutAttributes = elements[i - 1];
+        }
+        
+        currentLayoutAttributes.frame = frame;
+    }
+    
     if (toIndexPath == nil) {
         if (hideIndexPath == nil) {
             return elements;
