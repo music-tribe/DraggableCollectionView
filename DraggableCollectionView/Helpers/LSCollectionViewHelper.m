@@ -38,6 +38,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     BOOL canWarp;
     BOOL canScroll;
     NSArray<UILongPressGestureRecognizer *> *_longPressGestures;
+    UILongPressGestureRecognizer *_currentLongPressGesture;
 }
 @property (readonly, nonatomic) LSCollectionViewLayoutHelper *layoutHelper;
 @end
@@ -55,11 +56,6 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
                              context:&kObservingCollectionViewLayoutContext];
         _scrollingEdgeInsets = UIEdgeInsetsMake(50.0f, 50.0f, 50.0f, 50.0f);
         _scrollingSpeed = 300.f;
-        
-//        _longPressGestureRecognizer = [[UILongPressGestureRecognizer alloc]
-//                                       initWithTarget:self
-//                                       action:@selector(handleLongPressGesture:)];
-//        [_collectionView addGestureRecognizer:_longPressGestureRecognizer];
         
         _panPressGestureRecognizer = [[UIPanGestureRecognizer alloc]
                                       initWithTarget:self action:@selector(handlePanGesture:)];
@@ -81,7 +77,6 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
 {
     canWarp = [self.collectionView.collectionViewLayout conformsToProtocol:@protocol(UICollectionViewLayout_Warpable)];
     canScroll = [self.collectionView.collectionViewLayout respondsToSelector:@selector(scrollDirection)];
-   // _longPressGestureRecognizer.enabled =
     _panPressGestureRecognizer.enabled = canWarp && self.enabled;
     
     for (UILongPressGestureRecognizer *longPress in _longPressGestures) {
@@ -226,6 +221,14 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
 
 - (void)handleLongPressGesture:(UILongPressGestureRecognizer *)sender
 {
+    if (_currentLongPressGesture == nil ) {
+        _currentLongPressGesture = sender;
+    }
+    
+    else if (sender != _currentLongPressGesture) {
+        return;
+    }
+    
     if (sender.state == UIGestureRecognizerStateChanged) {
         return;
     }
@@ -306,6 +309,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
                  mockCell = nil;
                  self.layoutHelper.hideIndexPath = nil;
                  [self.collectionView.collectionViewLayout invalidateLayout];
+                 _currentLongPressGesture = nil;
              }];
             
             // Reset
@@ -455,9 +459,29 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
         default: break;
     }
     
-    mockCenter  = _CGPointAdd(mockCenter, translation);
-    mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
-    self.collectionView.contentOffset = _CGPointAdd(contentOffset, translation);
+    switch (_draggableAxis) {
+        case DraggableAxisBoth:
+            mockCenter  = _CGPointAdd(mockCenter, translation);
+            mockCell.center = _CGPointAdd(mockCenter, fingerTranslation);
+            self.collectionView.contentOffset = _CGPointAdd(contentOffset, translation);
+            break;
+            
+        case DraggableAxisX:
+            mockCenter.x  += translation.x;
+            mockCell.center = CGPointMake(mockCenter.x + fingerTranslation.x, mockCenter.y);
+            self.collectionView.contentOffset = CGPointMake(contentOffset.x + translation.x, contentOffset.y);
+            break;
+            
+        case DraggableAxisY:
+            mockCenter.y  += translation.y;
+            mockCell.center = CGPointMake(mockCenter.x, mockCenter.y  + fingerTranslation.y);
+            self.collectionView.contentOffset = CGPointMake(contentOffset.x, contentOffset.y + translation.x);
+            break;
+            
+        default:
+            [NSException raise:NSInternalInconsistencyException format:@"unrecognised DraggableAxis enum"];
+            break;
+    }
     
     // Warp items while scrolling
     NSIndexPath *indexPath = [self indexPathForItemClosestToPoint:mockCell.center];
