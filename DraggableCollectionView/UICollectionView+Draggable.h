@@ -19,5 +19,5 @@ typedef NS_ENUM(NSInteger, DraggableAxis) {
 @property DraggableAxis draggableAxis;
 @property (nonatomic, assign) UIEdgeInsets scrollingEdgeInsets;
 @property (nonatomic, assign) CGFloat scrollingSpeed;
-- (void)addLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture;
+- (void)addPanGesture:(UIPanGestureRecognizer *)panGesture;
 @end

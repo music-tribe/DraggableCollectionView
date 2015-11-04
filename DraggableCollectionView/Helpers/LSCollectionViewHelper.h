@@ -12,11 +12,10 @@
 - (id)initWithCollectionView:(UICollectionView *)collectionView;
 
 @property (nonatomic, readonly) UICollectionView *collectionView;
-@property (nonatomic, readonly) UIGestureRecognizer *longPressGestureRecognizer;
-@property (nonatomic, readonly) UIGestureRecognizer *panPressGestureRecognizer;
+
 @property (nonatomic, assign) UIEdgeInsets scrollingEdgeInsets;
 @property (nonatomic, assign) CGFloat scrollingSpeed;
 @property (nonatomic, assign) BOOL enabled;
 @property DraggableAxis draggableAxis;
-- (void)addLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture;
+- (void)addPanGesture:(UIPanGestureRecognizer *)panGesture;
 @end

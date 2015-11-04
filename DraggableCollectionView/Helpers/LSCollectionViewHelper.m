@@ -30,15 +30,15 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
 @interface LSCollectionViewHelper ()
 {
     NSIndexPath *lastIndexPath;
-    UIImageView *mockCell;
+    UICollectionViewCell *mockCell;
     CGPoint mockCenter;
     CGPoint fingerTranslation;
     CADisplayLink *timer;
     _ScrollingDirection scrollingDirection;
     BOOL canWarp;
     BOOL canScroll;
-    NSArray<UILongPressGestureRecognizer *> *_longPressGestures;
-    UILongPressGestureRecognizer *_currentLongPressGesture;
+    NSArray<UIPanGestureRecognizer *> *_panGestures;
+    UIPanGestureRecognizer *_currentPanPressGesture;
 }
 @property (readonly, nonatomic) LSCollectionViewLayoutHelper *layoutHelper;
 @end
@@ -55,14 +55,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
                              options:0
                              context:&kObservingCollectionViewLayoutContext];
         _scrollingEdgeInsets = UIEdgeInsetsMake(50.0f, 50.0f, 50.0f, 50.0f);
-        _scrollingSpeed = 300.f;
-        
-        _panPressGestureRecognizer = [[UIPanGestureRecognizer alloc]
-                                      initWithTarget:self action:@selector(handlePanGesture:)];
-        ((UIPanGestureRecognizer *)_panPressGestureRecognizer).maximumNumberOfTouches = 1;
-        _panPressGestureRecognizer.delegate = self;
-
-        [_collectionView addGestureRecognizer:_panPressGestureRecognizer];
+        _scrollingSpeed = 600.f;
         
         [self layoutChanged];
     }
@@ -78,10 +71,9 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
 {
     canWarp = [self.collectionView.collectionViewLayout conformsToProtocol:@protocol(UICollectionViewLayout_Warpable)];
     canScroll = [self.collectionView.collectionViewLayout respondsToSelector:@selector(scrollDirection)];
-    _panPressGestureRecognizer.enabled = canWarp && self.enabled;
     
-    for (UILongPressGestureRecognizer *longPress in _longPressGestures) {
-        longPress.enabled = canWarp && self.enabled;
+    for (UIPanGestureRecognizer *panPress in _panGestures) {
+        panPress.enabled = canWarp && self.enabled;
     }
 }
 
@@ -95,29 +87,13 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     }
 }
 
-// FIXME: remove this method only testing
-- (void)setLongPressGestureRecognizer:(UIGestureRecognizer *)longPressGestureRecognizer
-{
-    _longPressGestureRecognizer = longPressGestureRecognizer;
-}
-
 - (void)setEnabled:(BOOL)enabled
 {
     _enabled = enabled;
-  //  _longPressGestureRecognizer.enabled = canWarp && enabled;
-    _panPressGestureRecognizer.enabled = canWarp && enabled;
     
-    for (UILongPressGestureRecognizer *longPress in _longPressGestures) {
-        longPress.enabled = canWarp && self.enabled;
+    for (UIPanGestureRecognizer *panPress in _panGestures) {
+        panPress.enabled = canWarp && self.enabled;
     }
-}
-
-- (UIImage *)imageFromCell:(UICollectionViewCell *)cell {
-    UIGraphicsBeginImageContextWithOptions(cell.bounds.size, cell.isOpaque, 0.0f);
-    [cell.layer renderInContext:UIGraphicsGetCurrentContext()];
-    UIImage *image = UIGraphicsGetImageFromCurrentImageContext();
-    UIGraphicsEndImageContext();
-    return image;
 }
 
 - (void)invalidatesScrollTimer {
@@ -136,33 +112,6 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     }
 }
 
-- (BOOL)gestureRecognizerShouldBegin:(UIGestureRecognizer *)gestureRecognizer
-{
-    if([gestureRecognizer isEqual:_panPressGestureRecognizer]) {
-        return self.layoutHelper.fromIndexPath != nil;
-    }
-    return YES;
-}
-
-- (BOOL)gestureRecognizer:(UIGestureRecognizer *)gestureRecognizer shouldRecognizeSimultaneouslyWithGestureRecognizer:(UIGestureRecognizer *)otherGestureRecognizer
-{
-    for (UILongPressGestureRecognizer *longPress in _longPressGestures) {
-         if ([gestureRecognizer isEqual:longPress]) {
-             return [otherGestureRecognizer isEqual:_panPressGestureRecognizer];
-         }
-    }
-    
-    if ([gestureRecognizer isEqual:_panPressGestureRecognizer]) {
-        for (UILongPressGestureRecognizer *longPress in _longPressGestures) {
-            if ([otherGestureRecognizer isEqual:longPress]) {
-                return YES;
-            }
-        }
-    }
-    
-    return NO;
-}
-
 - (NSIndexPath *)indexPathForItemClosestToPoint:(CGPoint)point
 {
     NSArray *layoutAttrsInRect;
@@ -178,39 +127,7 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     // What cell are we closest to?
     for (UICollectionViewLayoutAttributes *layoutAttr in layoutAttrsInRect) {
         CGFloat xd = layoutAttr.center.x - point.x;
-        CGFloat yd = layoutAttr.center.y - point.y;
-        NSInteger dist = sqrtf(xd*xd + yd*yd);
-        if (dist < closestDist) {
-            closestDist = dist;
-            indexPath = layoutAttr.indexPath;
-        }
-    }
-    
-    // Are we closer to being the last cell in a different section?
-    NSInteger sections = [self.collectionView numberOfSections];
-    for (NSInteger i = 0; i < sections; ++i) {
-        if (i == self.layoutHelper.fromIndexPath.section) {
-            continue;
-        }
-        NSInteger items = [self.collectionView numberOfItemsInSection:i];
-        NSIndexPath *nextIndexPath = [NSIndexPath indexPathForItem:items inSection:i];
-        UICollectionViewLayoutAttributes *layoutAttr;
-        CGFloat xd, yd;
-        
-        if (items > 0) {
-            layoutAttr = [self.collectionView.collectionViewLayout layoutAttributesForItemAtIndexPath:nextIndexPath];
-            xd = layoutAttr.center.x - point.x;
-            yd = layoutAttr.center.y - point.y;
-        } else {
-            // Trying to use layoutAttributesForItemAtIndexPath while section is empty causes EXC_ARITHMETIC (division by zero items)
-            // So we're going to ask for the header instead. It doesn't have to exist.
-            layoutAttr = [self.collectionView.collectionViewLayout layoutAttributesForSupplementaryViewOfKind:UICollectionElementKindSectionHeader
-                                                                                                  atIndexPath:nextIndexPath];
-            xd = layoutAttr.frame.origin.x - point.x;
-            yd = layoutAttr.frame.origin.y - point.y;
-        }
-        
-        NSInteger dist = sqrtf(xd*xd + yd*yd);
+        NSInteger dist = sqrtf(xd*xd);
         if (dist < closestDist) {
             closestDist = dist;
             indexPath = layoutAttr.indexPath;
@@ -220,17 +137,18 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     return indexPath;
 }
 
-- (void)handleLongPressGesture:(UILongPressGestureRecognizer *)sender
+- (void)handleInitialGesture:(UIPanGestureRecognizer *)sender
 {
-    if (_currentLongPressGesture == nil ) {
-        _currentLongPressGesture = sender;
+    if (_currentPanPressGesture == nil ) {
+        _currentPanPressGesture = sender;
     }
     
-    else if (sender != _currentLongPressGesture) {
+    else if (sender != _currentPanPressGesture) {
         return;
     }
     
     if (sender.state == UIGestureRecognizerStateChanged) {
+        [self handlePanGesture:sender];
         return;
     }
     if (![self.collectionView.dataSource conformsToProtocol:@protocol(UICollectionViewDataSource_Draggable)]) {
@@ -253,24 +171,15 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             // Create mock cell to drag around
             UICollectionViewCell *cell = [self.collectionView cellForItemAtIndexPath:indexPath];
             cell.highlighted = NO;
-            [mockCell removeFromSuperview];
-            mockCell = [[UIImageView alloc] initWithFrame:cell.frame];
-            mockCell.image = [self imageFromCell:cell];
+            mockCell = cell;
             mockCenter = mockCell.center;
-            [self.collectionView addSubview:mockCell];
-            [UIView
-             animateWithDuration:0.05
-             animations:^{
-                 mockCell.transform = CGAffineTransformMakeScale(1.1f, 1.1f);
-             }
-             completion:nil];
             
             // Start warping
+            cell.selected = YES;
             lastIndexPath = indexPath;
             self.layoutHelper.fromIndexPath = indexPath;
             self.layoutHelper.hideIndexPath = indexPath;
             self.layoutHelper.toIndexPath = indexPath;
-            [self.collectionView.collectionViewLayout invalidateLayout];
         } break;
         case UIGestureRecognizerStateEnded:
         case UIGestureRecognizerStateCancelled: {
@@ -300,17 +209,17 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             // Switch mock for cell
             UICollectionViewLayoutAttributes *layoutAttributes = [self.collectionView layoutAttributesForItemAtIndexPath:self.layoutHelper.hideIndexPath];
             [UIView
-             animateWithDuration:0.05
+             animateWithDuration:0.01
              animations:^{
-                 mockCell.center = layoutAttributes.center;
-                 mockCell.transform = CGAffineTransformMakeScale(1.f, 1.f);
+                mockCell.center = layoutAttributes.center;
              }
              completion:^(BOOL finished) {
-                 [mockCell removeFromSuperview];
+                // [mockCell removeFromSuperview];
+                 mockCell.selected = NO;
                  mockCell = nil;
                  self.layoutHelper.hideIndexPath = nil;
                  [self.collectionView.collectionViewLayout invalidateLayout];
-                 _currentLongPressGesture = nil;
+                 _currentPanPressGesture = nil;
              }];
             
             // Reset
@@ -335,16 +244,20 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
             toIndexPath:indexPath] == NO) {
         return;
     }
+    
+    // we don't won't the default animations here
+    [UIView setAnimationsEnabled:NO];
     [self.collectionView performBatchUpdates:^{
+        [_collectionView bringSubviewToFront:mockCell];
         self.layoutHelper.hideIndexPath = indexPath;
         self.layoutHelper.toIndexPath = indexPath;
     } completion:nil];
+    [UIView setAnimationsEnabled:YES];
 }
 
 - (void)handlePanGesture:(UIPanGestureRecognizer *)sender
 {
     if(sender.state == UIGestureRecognizerStateChanged) {
-         DDLogVerbose(@"PAN UIGestureRecognizerStateChanged \n");
         // Move mock to match finger
         fingerTranslation = [sender translationInView:self.collectionView];
         // Only translate in the x axis
@@ -401,20 +314,20 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
         }
         
         // Warp item to finger location
-        CGPoint point = [sender locationInView:self.collectionView];
+        CGPoint point = mockCell.center;
         NSIndexPath *indexPath = [self indexPathForItemClosestToPoint:point];
         [self warpToIndexPath:indexPath];
     }
 }
 
-- (void)addLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture
+- (void)addPanGesture:(UIPanGestureRecognizer *)panGesture
 {
-    [longPressGesture addTarget:self action:@selector(handleLongPressGesture:)];
+    [panGesture addTarget:self action:@selector(handleInitialGesture:)];
     
-    NSMutableArray<UILongPressGestureRecognizer *> *newLongPressGestures = [[NSMutableArray alloc] initWithArray:_longPressGestures];
-    [newLongPressGestures addObject:longPressGesture];
+    NSMutableArray<UIPanGestureRecognizer *> *newPanGestures = [[NSMutableArray alloc] initWithArray:_panGestures];
+    [newPanGestures addObject:panGesture];
     
-    _longPressGestures = newLongPressGestures.copy;
+    _panGestures = newPanGestures.copy;
 }
 
 - (void)handleScroll:(NSTimer *)timer {

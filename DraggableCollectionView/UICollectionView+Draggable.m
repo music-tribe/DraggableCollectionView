@@ -55,9 +55,9 @@
     [self getHelper].scrollingSpeed = scrollingSpeed;
 }
 
-- (void)addLongPressGesture:(UILongPressGestureRecognizer *)longPressGesture;
+- (void)addPanGesture:(UIPanGestureRecognizer *)panGesture;
 {
-    [[self getHelper] addLongPressGesture:longPressGesture];
+    [[self getHelper] addPanGesture:panGesture];
 }
 
 @end

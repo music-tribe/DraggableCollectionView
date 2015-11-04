@@ -55,12 +55,14 @@
             if(layoutAttributes.representedElementCategory != UICollectionElementCategoryCell) {
                 continue;
             }
-            if ([layoutAttributes.indexPath isEqual:hideIndexPath]) {
-                layoutAttributes.hidden = YES;
-            }
         }
+        
+        [self rearrangeIndexPathOfLayoutAttributesForElements:elements];
+        
         return elements;
     }
+    
+    [self rearrangeIndexPathOfLayoutAttributesForElements:elements];
     
     if (fromIndexPath.section != toIndexPath.section) {
         indexPathToRemove = [NSIndexPath indexPathForItem:[collectionView numberOfItemsInSection:fromIndexPath.section] - 1
@@ -68,41 +70,23 @@
     }
     
     for (UICollectionViewLayoutAttributes *layoutAttributes in elements) {
-        if(layoutAttributes.representedElementCategory != UICollectionElementCategoryCell) {
+        if (layoutAttributes.representedElementCategory != UICollectionElementCategoryCell) {
             continue;
         }
-        if([layoutAttributes.indexPath isEqual:indexPathToRemove]) {
-            // Remove item in source section and insert item in target section
-            layoutAttributes.indexPath = [NSIndexPath indexPathForItem:[collectionView numberOfItemsInSection:toIndexPath.section]
-                                                             inSection:toIndexPath.section];
-            if (layoutAttributes.indexPath.item != 0) {
-                layoutAttributes.center = [self.collectionViewLayout layoutAttributesForItemAtIndexPath:layoutAttributes.indexPath].center;
-            }
-        }
+        
         NSIndexPath *indexPath = layoutAttributes.indexPath;
-        if ([indexPath isEqual:hideIndexPath]) {
-            layoutAttributes.hidden = YES;
-        }
+       
         if([indexPath isEqual:toIndexPath]) {
             // Item's new location
             layoutAttributes.indexPath = fromIndexPath;
         }
-        else if(fromIndexPath.section != toIndexPath.section) {
-            if(indexPath.section == fromIndexPath.section && indexPath.item >= fromIndexPath.item) {
-                // Change indexes in source section
-                layoutAttributes.indexPath = [NSIndexPath indexPathForItem:indexPath.item + 1 inSection:indexPath.section];
-            }
-            else if(indexPath.section == toIndexPath.section && indexPath.item >= toIndexPath.item) {
-                // Change indexes in destination section
-                layoutAttributes.indexPath = [NSIndexPath indexPathForItem:indexPath.item - 1 inSection:indexPath.section];
-            }
-        }
-        else if(indexPath.section == fromIndexPath.section) {
-            if(indexPath.item <= fromIndexPath.item && indexPath.item > toIndexPath.item) {
+        else {
+            if (indexPath.item <= fromIndexPath.item && indexPath.item > toIndexPath.item) {
                 // Item moved back
                 layoutAttributes.indexPath = [NSIndexPath indexPathForItem:indexPath.item - 1 inSection:indexPath.section];
             }
-            else if(indexPath.item >= fromIndexPath.item && indexPath.item < toIndexPath.item) {
+            
+            else if (indexPath.item >= fromIndexPath.item && indexPath.item < toIndexPath.item) {
                 // Item moved forward
                 layoutAttributes.indexPath = [NSIndexPath indexPathForItem:indexPath.item + 1 inSection:indexPath.section];
             }
@@ -112,14 +96,35 @@
     return elements;
 }
 
-// FIXME: testing code remove
-- (void)setFromIndexPath:(NSIndexPath *)fromIndexPath
+/// Accounts for difference in iOS 9 where the order of elements can not be counted
+- (void)rearrangeIndexPathOfLayoutAttributesForElements:(NSArray *)elements
 {
-    if(fromIndexPath == nil) {
-        NSLog(@"Who set this");
-    }
+    if ([[[UIDevice currentDevice] systemVersion] floatValue] >= 9.0) {
+            NSComparator comparator = ^(NSIndexPath *element1, NSIndexPath *element2){
+        
+                if (element1.section < element2.section) {
+                            return (NSComparisonResult)NSOrderedAscending;
+                }
+        
+                if (element1.row < element2.row) {
+                        return (NSComparisonResult)NSOrderedAscending;
+                }
     
-    _fromIndexPath = fromIndexPath;
+                return (NSComparisonResult)NSOrderedDescending;
+            };
+    
+            NSMutableArray *indexPathArray = [NSMutableArray array];
+    
+            for (UICollectionViewLayoutAttributes *layoutAttributes in elements) {
+                    [indexPathArray addObject:layoutAttributes.indexPath];
+            }
+    
+            NSArray *sortedArray = [[NSArray arrayWithArray:indexPathArray] sortedArrayUsingComparator:comparator];
+        
+            for (NSInteger index = 0; index < sortedArray.count; ++index) {
+                        ((UICollectionViewLayoutAttributes*)[elements objectAtIndex:index]).indexPath = (NSIndexPath *)[sortedArray objectAtIndex:index];
+            }
+        }
 }
 
 @end
