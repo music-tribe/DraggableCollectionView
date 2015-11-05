@@ -80,6 +80,7 @@
             // Item's new location
             layoutAttributes.indexPath = fromIndexPath;
         }
+        
         else {
             if (indexPath.item <= fromIndexPath.item && indexPath.item > toIndexPath.item) {
                 // Item moved back
