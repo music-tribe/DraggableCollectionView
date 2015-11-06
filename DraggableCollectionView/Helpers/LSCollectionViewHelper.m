@@ -159,7 +159,6 @@ typedef NS_ENUM(NSInteger, _ScrollingDirection) {
     
     switch (sender.state) {
         case UIGestureRecognizerStateBegan: {
-            DDLogVerbose(@"Long Press UIGestureRecognizerStateBegan \n");
             if (indexPath == nil) {
                 return;
             }
